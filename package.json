@@ -4,8 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "config": {
+    "port": "8080"
+  },
+  "dependencies": {
+    "mongodb": "^2.0.39",
+    "mongojs": "^1.0.2",
+    "request": "^2.60.0"
+  }
 }
