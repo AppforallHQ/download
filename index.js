@@ -23,13 +23,18 @@ http.createServer(function (req, res) {
     var user_id = query.id;
     var user = userHasRightToAccess(user_id, appid);
     if (user != false) {
-        download(user_id, appid, function(error, result){
+        download(user_id, appid, function(error, tpath){
             if (error){
-                console.log('download error', error);
-                res.end('');
+                res.writeHead(200, {"Content-Type": "application/json"});
+                var json = JSON.stringify({ 
+                    'status': 'error',
+                    'message': error
+                });
+                res.end(json);
             } else {
-                // console.log(result);
-                res.setHeader('X-Accel-Redirect', '/assets'+url_parts.pathname);
+                res.setHeader('X-Accel-Redirect', tpath);
+                res.setHeader('Content-Type', 'application/octet-stream');
+                res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
                 res.end('');
             }
         });
@@ -77,7 +82,6 @@ var get_user_data = function(user_signature, callback){
 };
 
 var get_user_status = function(user_id, callback){
-    console.log('user_id1', user_id);
     if (user_id == null || user_id.length != 40){
         callback('Invalid user_id', null);
     } else {
@@ -113,7 +117,6 @@ var get_download_path = function(groupid, appid, user_signature, callback){
 
     tpath = path.join(tpath, 'data/program.ipa');
 
-    console.log(tpath);
     callback(false, tpath);
 };
 
