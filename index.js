@@ -1,9 +1,22 @@
 var http = require('http');
 var path = require('path');
-var logger = require('morgan');
+var bunyan = require('bunyan');
 var url = require('url');
 var mongojs = require('mongojs');
 var request = require('request');
+
+var logger = bunyan.createLogger({
+    name: 'reverse-proxy',
+    streams: [{
+        level: 'info',
+        path: '/var/log/reverse-proxy.log'
+        // stream: process.stdout // log INFO and above to stdout
+    }, {
+        level: 'error',
+        path: '/var/log/reverse-proxy-error.log' // log ERROR and above to a file
+    }]
+});
+
 
 //var PORT = process.env.npm_package_config_port || 8080
 var PORT = 8080;
@@ -12,7 +25,6 @@ var host = '127.0.0.1';
 var port = '27017';
 var dbname = 'appdb';
 var databaseUrl = host+":"+port+"/"+dbname; // "username:password@example.com/mydb"
-console.log(databaseUrl);
 var collections = ["users", "apps"];
 var db = mongojs(databaseUrl, collections);
 
@@ -26,20 +38,19 @@ http.createServer(function (req, res) {
         download(user_id, appid, function(error, tpath){
             if (error){
                 res.writeHead(200, {"Content-Type": "application/json"});
-                var json = JSON.stringify({ 
+                var json = JSON.stringify({
                     'status': 'error',
                     'message': error
                 });
                 res.end(json);
             } else {
-                res.setHeader('X-Accel-Redirect', tpath);
+                res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
                 res.setHeader('Content-Type', 'application/octet-stream');
                 res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
                 res.end('');
             }
         });
     } else {
-        // console.log(req.url);
         res.end('server works!');
     }
 }).listen(PORT);
