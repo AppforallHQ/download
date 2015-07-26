@@ -19,73 +19,102 @@ var db = mongojs(databaseUrl, collections);
 http.createServer(function (req, res) {
     var url_parts = url.parse(req.url, true);
     var query = url_parts.query;
-    var ipfv = query.aid;
     var appid = query.appid;
-    var user_id = query.user_id;
-    var user = userHasRightToAccess(ipfv, appid);
+    var user_id = query.id;
+    var user = userHasRightToAccess(user_id, appid);
     if (user != false) {
-        var download = download(user_id, appid, ipfv, function(result){
-            res.setHeader('X-Accel-Redirect', '/assets'+url_parts.pathname);
-            res.end('');
+        download(user_id, appid, function(error, result){
+            if (error){
+                console.log('download error', error);
+                res.end('');
+            } else {
+                // console.log(result);
+                res.setHeader('X-Accel-Redirect', '/assets'+url_parts.pathname);
+                res.end('');
+            }
         });
     } else {
-        console.log(req.url);
+        // console.log(req.url);
         res.end('server works!');
     }
 }).listen(PORT);
 
-var userHasRightToAccess = function(FQDNv, appid){
+var userHasRightToAccess = function(user_id, appid){
     return true;
 };
 
-var download = function(user_id, appid, ipfv){
+var download = function(user_id, appid, callback){
     var user_signature = normalize_user_id(user_id);
     var user_udid = signature_to_udid(user_signature);
-    var user = get_user_data(user_signature, function(error, result){
-        if (error){
-            console.log(error);
+    get_user_data(user_signature, function(error, user){
+        if (user == null){
+            callback('User Not Found', null);
+        } else {
+            get_user_status(user_udid, function(error, user_status){
+                if (error || user_status == null || user_status.status != 'ok' || user_status.user_status != 1){
+                    callback(error, null);
+                } else {
+                    get_download_path(user.groupid, appid, null, function(error, download_path){
+                        callback(false, download_path);
+                    });
+                }
+            });
         }
-        console.log(result);
     });
 };
 
-var get_user_data = function(user_signature, idfv, callback){
+var get_user_data = function(user_signature, callback){
     var query = {'$or': [{'signature': user_signature}, {'udid': user_signature}]};
-    if (idfv != null){
-        query['idfv'] = idfv;
-    }
-    db.users.find_one(query, function(error, result){
+    // db.users.find_one(query, function(error, result){
+    db.users.find(query, function(error, result){
         if (error){
             callback(error, null);
         } else {
-            callback(false, result);
+            var user = result[0];
+            callback(false, user);
         }
     });
 };
 
-var get_user_status = function(user_id, idfv, callback){
-    if (user_id == null && user_id.length != 40){
+var get_user_status = function(user_id, callback){
+    console.log('user_id1', user_id);
+    if (user_id == null || user_id.length != 40){
         callback('Invalid user_id', null);
+    } else {
+        var USER_STATUS_URL = 'http:?/USER_STATUS_CHECK_API';
+        request({
+            uri: USER_STATUS_URL,
+            method: "GET",
+            timeout: 10000,
+            followRedirect: true,
+            qs: {
+                id: user_id
+            },
+            maxRedirects: 10
+        }, function(error, response, body) {
+            if (error){
+                callback(error, null);
+            } else {
+                body = JSON.parse(body);
+                callback(null, body);
+            }
+        });
     }
-    var USER_STATUS_URL = 'http:?/USER_STATUS_CHECK_API';
-    request({
-        uri: USER_STATUS_URL,
-        method: "GET",
-        timeout: 10000,
-        followRedirect: true,
-        form: {
-            id: user_id
-        },
-        maxRedirects: 10
-    }, function(error, response, body) {
-        if (error){
-            console.log(error);
-            callback(error, null);
-        } else {
-            console.log(body);
-            callback(null, body);
-        }
-    });
+};
+
+var get_download_path = function(groupid, appid, user_signature, callback){
+    groupid = groupid.toString();
+    appid = appid.toString();
+    var tpath = path.join(groupid, appid);
+
+    if (user_signature != null){
+        tpath = path.join(tpath, user_signature);
+    }
+
+    tpath = path.join(tpath, 'data/program.ipa');
+
+    console.log(tpath);
+    callback(false, tpath);
 };
 
 String.prototype.rot13 = function(){
