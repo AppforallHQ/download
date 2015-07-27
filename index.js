@@ -131,6 +131,21 @@ var get_download_path = function(groupid, appid, user_signature, callback){
     callback(false, tpath);
 };
 
+var get_app_path = function(appid, callback){
+    appid = appid.toString();
+    var query = {'localid': appid};
+
+    db.repo.find(query, function(error, result){
+        if (error){
+            callback(error, null);
+        } else {
+            var app = result[0];
+            var tpath = app.path;
+            callback(false, tpath);
+        }
+    });
+};
+
 String.prototype.rot13 = function(){
     return this.replace(/[a-zA-Z]/g, function(c){
         return String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26);
