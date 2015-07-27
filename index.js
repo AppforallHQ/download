@@ -106,7 +106,7 @@ var download = function(user_id, appid, type, callback){
                 });
             });
         } else if (type == 'raw'){
-            get_app_path(appid, function(error, app){
+            get_app_path(appid, function(error, download_path){
                 callback(false, download_path);
             });
         }
