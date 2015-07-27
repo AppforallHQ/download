@@ -4,8 +4,8 @@ Restart=always
 StandardOutput=syslog 
 StandardError=syslog 
 SyslogIdentifier=download 
-User=srv-download 
-Group=srv-download 
+User=user
+Group=user
 Environment=NODE_ENV=production
 
 [Install]
