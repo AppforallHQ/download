@@ -25,55 +25,89 @@ var host = '127.0.0.1';
 var port = '27017';
 var dbname = 'appdb';
 var databaseUrl = host+":"+port+"/"+dbname; // "username:password@example.com/mydb"
-var collections = ["users", "apps"];
+var collections = ["users", "repo"];
 var db = mongojs(databaseUrl, collections);
 
 http.createServer(function (req, res) {
     var url_parts = url.parse(req.url, true);
     var query = url_parts.query;
-    var appid = query.appid;
+    // var appid = query.appid;
+    var idfv = query.aid; // we're not using this at this time
     var user_id = query.id;
-    var user = userHasRightToAccess(user_id, appid);
-    if (user != false) {
-        download(user_id, appid, function(error, tpath){
-            if (error){
-                res.writeHead(200, {"Content-Type": "application/json"});
+    var paths = url_parts.pathname.split('/');
+    var appid = paths[1];
+    var type = paths[2];
+    if ((paths.length == 4 && paths[3] == '') && (type == 'zip' || type == 'raw')) {
+        download(user_id, appid, type, function(error, tpath){
+            if (error) {
+                logger.info({status: 'failed'}, error);
+                res.writeHead(404, {"Content-Type": "application/json"});
                 var json = JSON.stringify({
                     'status': 'error',
                     'message': error
                 });
                 res.end(json);
             } else {
-                res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
-                res.setHeader('Content-Type', 'application/octet-stream');
-                res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
-                res.end('');
+                if(type=='zip'){
+                    logger.info({status: 'success'}, 'Successfully Served [zip]'+appid+' to '+user_id);
+                    res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
+                    res.setHeader('Content-Type', 'application/octet-stream');
+                    res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
+                    res.end('');
+                } else {
+                    logger.info({status: 'success'}, 'Successfully Served [raw]'+appid+' to '+user_id);
+                    res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
+                    res.setHeader('Content-Type', 'application/octet-stream');
+                    res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
+                    res.end('');
+                }
             }
         });
     } else {
-        res.end('server works!');
+        var error = 'Wrong type';
+        logger.info({status: 'failed'}, error);
+        res.writeHead(404, {"Content-Type": "application/json"});
+        var json = JSON.stringify({
+            'status': 'error',
+            'message': error
+        });
+        res.end(json);
     }
 }).listen(PORT);
 
-var userHasRightToAccess = function(user_id, appid){
-    return true;
-};
-
-var download = function(user_id, appid, callback){
+var download = function(user_id, appid, type, callback){
     var user_signature = normalize_user_id(user_id);
+    if (user_signature === null){
+        callback('User signature is invalid', null);
+        return ;
+    }
     var user_udid = signature_to_udid(user_signature);
-    get_user_data(user_signature, function(error, user){
-        if (user == null){
-            callback('User Not Found', null);
-        } else {
-            get_user_status(user_udid, function(error, user_status){
-                if (error || user_status == null || user_status.status != 'ok' || user_status.user_status != 1){
-                    callback(error, null);
-                } else {
-                    get_download_path(user.groupid, appid, null, function(error, download_path){
-                        callback(false, download_path);
-                    });
+    if (user_signature === null){
+        callback('User udid is invalid', null);
+        return ;
+    }
+    get_user_status(user_udid, function(error, user_status){
+        if (error || user_status == null || user_status.status != 'ok' || user_status.user_status != 1){
+            callback(error, null);
+            return ;
+        }
+        if (type == 'zip') {
+            get_user_data(user_signature, function(error, user){
+                if (user == null){
+                    callback('User Not Found', null);
+                    return ;
                 }
+                if (user.groupid == null){
+                    callback('Group ID not found', null);
+                    return ;
+                }
+                get_download_path(user.groupid, appid, null, function(error, download_path){
+                    callback(false, download_path);
+                });
+            });
+        } else if (type == 'raw'){
+            get_app_path(appid, function(error, app){
+                callback(false, download_path);
             });
         }
     });
