@@ -47,20 +47,20 @@ http.createServer(function (req, res) {
                     'message': error
                 });
                 res.end(json);
+                return ;
+            }
+            if(type=='zip'){
+                logger.info({status: 'success'}, 'Successfully Served [zip]'+appid+' to '+user_id+', path: '+tpath);
+                res.setHeader('X-Accel-Redirect', '/download_internal_zip/'+tpath);
+                res.setHeader('Content-Type', 'application/octet-stream');
+                res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
+                res.end('');
             } else {
-                if(type=='zip'){
-                    logger.info({status: 'success'}, 'Successfully Served [zip]'+appid+' to '+user_id);
-                    res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
-                    res.setHeader('Content-Type', 'application/octet-stream');
-                    res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
-                    res.end('');
-                } else {
-                    logger.info({status: 'success'}, 'Successfully Served [raw]'+appid+' to '+user_id);
-                    res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
-                    res.setHeader('Content-Type', 'application/octet-stream');
-                    res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
-                    res.end('');
-                }
+                logger.info({status: 'success'}, 'Successfully Served [raw]'+appid+' to '+user_id+', path: '+tpath);
+                res.setHeader('X-Accel-Redirect', '/download_internal_raw/'+tpath);
+                res.setHeader('Content-Type', 'application/octet-stream');
+                res.setHeader('Content-Disposition', 'attachment; filename=program.raw');
+                res.end('');
             }
         });
     } else {
@@ -101,12 +101,12 @@ var download = function(user_id, appid, type, callback){
                     callback('Group ID not found', null);
                     return ;
                 }
-                get_download_path(user.groupid, appid, null, function(error, download_path){
+                get_zip_path(user.groupid, appid, function(error, download_path){
                     callback(false, download_path);
                 });
             });
-        } else if (type == 'raw'){
-            get_app_path(appid, function(error, download_path){
+        } else {
+            get_raw_path(appid, function(error, download_path){
                 callback(false, download_path);
             });
         }
@@ -143,29 +143,42 @@ var get_user_status = function(user_id, callback){
         }, function(error, response, body) {
             if (error){
                 callback(error, null);
-            } else {
-                body = JSON.parse(body);
-                callback(null, body);
+                return ;
             }
+            if (response.statusCode != 200){
+                callback('Connection problem to get_status api', null);
+                return ;
+            }
+            body = JSON.parse(body);
+            callback(null, body);
         });
     }
 };
 
-var get_download_path = function(groupid, appid, user_signature, callback){
-    groupid = groupid.toString();
+var get_zip_path = function(appid, groupid, callback){
     appid = appid.toString();
-    var tpath = path.join(groupid, appid);
+    var query = {'localid': appid};
 
-    if (user_signature != null){
-        tpath = path.join(tpath, user_signature);
-    }
-
-    tpath = path.join(tpath, 'data/program.ipa');
-
-    callback(false, tpath);
+    db.repo.find(query, function(error, result){
+        var app = result[0];
+        if (error){
+            callback(error, null);
+            return ;
+        }
+        if (app == null){
+            callback('App not found', null);
+            return ;
+        }
+        if (app.packages != undefined && app.packages[groupid]){
+            var tpath = app.packages[groupid];
+            callback(false, tpath);
+        } else {
+            callback('Package is not signed yet');
+        }
+    });
 };
 
-var get_app_path = function(appid, callback){
+var get_raw_path = function(appid, callback){
     appid = appid.toString();
     var query = {'localid': appid};
 
@@ -174,7 +187,7 @@ var get_app_path = function(appid, callback){
             callback(error, null);
         } else {
             var app = result[0];
-            var tpath = app.path;
+            var tpath = app.location;
             callback(false, tpath);
         }
     });
