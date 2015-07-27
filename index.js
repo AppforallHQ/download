@@ -59,7 +59,7 @@ http.createServer(function (req, res) {
             res.setHeader('Content-Type', 'application/octet-stream');
             if(type=='zip'){
                 logger.info({status: 'success'}, 'Successfully Served [zip] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
-                res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
+                res.setHeader('Content-Disposition', 'attachment; filename=program.zip');
             } else {
                 logger.info({status: 'success'}, 'Successfully Served [raw] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.raw');
