@@ -4,6 +4,7 @@ var bunyan = require('bunyan');
 var url = require('url');
 var mongojs = require('mongojs');
 var request = require('request');
+var config = require('./configs/config');
 
 var logger = bunyan.createLogger({
     name: 'reverse-proxy',
@@ -18,15 +19,9 @@ var logger = bunyan.createLogger({
 });
 
 
-//var PORT = process.env.npm_package_config_port || 8080
-var PORT = 8008;
+var PORT = config.port;
 
-var host = '127.0.0.1';
-var port = '27017';
-var dbname = 'appdb';
-var databaseUrl = host+':'+port+'/'+dbname; // username:password@example.com/mydb
-var collections = ['users', 'repo'];
-var db = mongojs(databaseUrl, collections);
+var db = mongojs(config.db.uri, config.db.collections);
 
 http.createServer(function (req, res) {
     var url_parts = url.parse(req.url, true);
