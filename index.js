@@ -39,6 +39,9 @@ http.createServer(function (req, res) {
     var type = paths[2];
     if ((paths.length == 4 && paths[3] == '') && (type == 'zip' || type == 'raw')) {
         download(user_id, appid, type, function(error, tpath){
+            if (error == null && tpath == null){
+                error = "App not found";
+            }
             if (error) {
                 logger.info({status: 'failed'}, error);
                 res.writeHead(404, {"Content-Type": "application/json"});
@@ -49,19 +52,16 @@ http.createServer(function (req, res) {
                 res.end(json);
                 return ;
             }
+            res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
+            res.setHeader('Content-Type', 'application/octet-stream');
             if(type=='zip'){
-                logger.info({status: 'success'}, 'Successfully Served [zip]'+appid+' to '+user_id+', path: '+tpath);
-                res.setHeader('X-Accel-Redirect', '/download_internal_zip/'+tpath);
-                res.setHeader('Content-Type', 'application/octet-stream');
+                logger.info({status: 'success'}, 'Successfully Served [zip] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.ipa');
-                res.end('');
             } else {
-                logger.info({status: 'success'}, 'Successfully Served [raw]'+appid+' to '+user_id+', path: '+tpath);
-                res.setHeader('X-Accel-Redirect', '/download_internal_raw/'+tpath);
-                res.setHeader('Content-Type', 'application/octet-stream');
+                logger.info({status: 'success'}, 'Successfully Served [raw] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.raw');
-                res.end('');
             }
+            res.end('');
         });
     } else {
         var error = 'Wrong type';
@@ -87,7 +87,12 @@ var download = function(user_id, appid, type, callback){
         return ;
     }
     get_user_status(user_udid, function(error, user_status){
-        if (error || user_status == null || user_status.status != 'ok' || user_status.user_status != 1){
+        if (error){
+            callback(error, null);
+            return ;
+        }
+        if (user_status == null || user_status.status != 'ok' || user_status.user_status != 1){
+            error = 'User is not valid to download';
             callback(error, null);
             return ;
         }
@@ -101,7 +106,11 @@ var download = function(user_id, appid, type, callback){
                     callback('Group ID not found', null);
                     return ;
                 }
-                get_zip_path(user.groupid, appid, function(error, download_path){
+                get_zip_path(appid, user.groupid, function(error, download_path){
+                    if (error){
+                        callback(error, null);
+                        return ;
+                    }
                     callback(false, download_path);
                 });
             });
@@ -156,15 +165,19 @@ var get_user_status = function(user_id, callback){
 };
 
 var get_zip_path = function(appid, groupid, callback){
-    appid = appid.toString();
+    // appid = appid.toString();
     var query = {'localid': appid};
 
     db.repo.find(query, function(error, result){
-        var app = result[0];
         if (error){
             callback(error, null);
             return ;
         }
+        if (result.length == 0){
+            callback('No app found with this id');
+            return ;
+        }
+        var app = result[0];
         if (app == null){
             callback('App not found', null);
             return ;
