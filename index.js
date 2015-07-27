@@ -19,13 +19,13 @@ var logger = bunyan.createLogger({
 
 
 //var PORT = process.env.npm_package_config_port || 8080
-var PORT = 8080;
+var PORT = 8008;
 
 var host = '127.0.0.1';
 var port = '27017';
 var dbname = 'appdb';
-var databaseUrl = host+":"+port+"/"+dbname; // "username:password@example.com/mydb"
-var collections = ["users", "repo"];
+var databaseUrl = host+':'+port+'/'+dbname; // username:password@example.com/mydb
+var collections = ['users', 'repo'];
 var db = mongojs(databaseUrl, collections);
 
 http.createServer(function (req, res) {
@@ -40,11 +40,11 @@ http.createServer(function (req, res) {
     if ((paths.length == 4 && paths[3] == '') && (type == 'zip' || type == 'raw')) {
         download(user_id, appid, type, function(error, tpath){
             if (error == null && tpath == null){
-                error = "App not found";
+                error = 'App not found';
             }
             if (error) {
                 logger.info({status: 'failed'}, error);
-                res.writeHead(404, {"Content-Type": "application/json"});
+                res.writeHead(404, {'Content-Type': 'application/json'});
                 var json = JSON.stringify({
                     'status': 'error',
                     'message': error
@@ -52,7 +52,10 @@ http.createServer(function (req, res) {
                 res.end(json);
                 return ;
             }
-            res.setHeader('X-Accel-Redirect', '/download_internal/'+tpath);
+
+            tpath = tpath.replace('/app/repo','/download_internal');
+
+            res.setHeader('X-Accel-Redirect', tpath);
             res.setHeader('Content-Type', 'application/octet-stream');
             if(type=='zip'){
                 logger.info({status: 'success'}, 'Successfully Served [zip] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
@@ -64,9 +67,9 @@ http.createServer(function (req, res) {
             res.end('');
         });
     } else {
-        var error = 'Wrong type';
+        var error = 'Wrong request';
         logger.info({status: 'failed'}, error);
-        res.writeHead(404, {"Content-Type": "application/json"});
+        res.writeHead(404, {'Content-Type': 'application/json'});
         var json = JSON.stringify({
             'status': 'error',
             'message': error
@@ -142,7 +145,7 @@ var get_user_status = function(user_id, callback){
         var USER_STATUS_URL = 'http:?/USER_STATUS_CHECK_API';
         request({
             uri: USER_STATUS_URL,
-            method: "GET",
+            method: 'GET',
             timeout: 10000,
             followRedirect: true,
             qs: {
@@ -208,7 +211,7 @@ var get_raw_path = function(appid, callback){
 
 String.prototype.rot13 = function(){
     return this.replace(/[a-zA-Z]/g, function(c){
-        return String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26);
+        return String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26);
     });
 };
 
@@ -245,4 +248,4 @@ var normalize_user_id = function(user_id){
     }
 };
 
-console.log("Server listening on port " + PORT);
+console.log('Server listening on port ' + PORT);
