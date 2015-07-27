@@ -1,5 +1,5 @@
 [Service] 
-ExecStart=nodejs /app/download/index.js 
+ExecStart=/usr/bin/nodejs /app/download/index.js 
 Restart=always 
 StandardOutput=syslog 
 StandardError=syslog 
