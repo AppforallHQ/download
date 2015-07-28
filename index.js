@@ -50,14 +50,15 @@ http.createServer(function (req, res) {
 
             tpath = tpath.replace('/app/repo','/download_internal');
 
-            res.setHeader('X-Accel-Redirect', tpath);
             res.setHeader('Content-Type', 'application/octet-stream');
             if(type=='zip'){
                 logger.info({status: 'success'}, 'Successfully Served [zip] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
+                res.setHeader('X-Accel-Redirect', tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.zip');
             } else {
                 tpath += '/program.raw';
                 logger.info({status: 'success'}, 'Successfully Served [raw] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
+                res.setHeader('X-Accel-Redirect', tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.raw');
             }
             res.end('');
