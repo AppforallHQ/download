@@ -10,11 +10,11 @@ var logger = bunyan.createLogger({
     name: 'reverse-proxy',
     streams: [{
         level: 'info',
-        path: '/var/log/nodejs-fileserver.log'
+        path: '/var/log/nodejs-download.log'
         // stream: process.stdout // log INFO and above to stdout
     }, {
         level: 'error',
-        path: '/var/log/nodejs-fileserver.log' // log ERROR and above to a file
+        path: '/var/log/nodejs-download.log' // log ERROR and above to a file
     }]
 });
 
