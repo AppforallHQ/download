@@ -56,6 +56,7 @@ http.createServer(function (req, res) {
                 logger.info({status: 'success'}, 'Successfully Served [zip] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.zip');
             } else {
+                tpath += '/program.raw';
                 logger.info({status: 'success'}, 'Successfully Served [raw] appid:'+appid+' to userid:'+user_id+', path: '+tpath);
                 res.setHeader('Content-Disposition', 'attachment; filename=program.raw');
             }
