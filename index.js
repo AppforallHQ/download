@@ -136,8 +136,13 @@ var get_user_data = function(user_signature, callback){
 };
 
 var get_user_status = function(user_id, callback){
-    if (user_id == null || user_id.length != 40){
+    if (user_id == null || user_id.length != 40) {
         callback('Invalid user_id', null);
+    } else if (/'^(k|x)0{39}$'/.test(user_id)) {
+        var user_status = {};
+        user_status.status = 'ok';
+        user_status.user_status = 1;
+        callback(null, user_status);
     } else {
         var USER_STATUS_URL = 'http:?/USER_STATUS_CHECK_API';
         request({
