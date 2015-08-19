@@ -219,7 +219,8 @@ String.prototype.rot13 = function(){
 
 var udid_to_signature = function(udid){
     var UDID_RE = /^[a-f0-9]{40}$/;
-    if (UDID_RE.test(udid)){
+    var BASIC_VERSION_UDID = /'^x0{39}$'/;
+    if (UDID_RE.test(udid) || BASIC_VERSION_UDID.test(udid)){
         return udid.rot13();
     } else {
         return null;
@@ -228,7 +229,8 @@ var udid_to_signature = function(udid){
 
 var signature_to_udid = function(signature){
     var SIGNATURE_RE = /^[n-s0-9]{40}$/;
-    if (SIGNATURE_RE.test(signature)){
+    var BASIC_VERSION_SIGNATURE = /'^k0{39}$'/;
+    if (SIGNATURE_RE.test(signature) || BASIC_VERSION_SIGNATURE.test(signature)){
         return signature.rot13();
     } else {
         return null;
@@ -238,12 +240,14 @@ var signature_to_udid = function(signature){
 var normalize_user_id = function(user_id){
     var UDID_RE = /^[a-f0-9]{40}$/;
     var SIGNATURE_RE = /^[n-s0-9]{40}$/;
+    var BASIC_VERSION_UDID = /'^x0{39}$'/;
+    var BASIC_VERSION_SIGNATURE = /'^k0{39}$'/;
     if (user_id == null){
         return null;
     }
-    if (UDID_RE.test(user_id)){
+    if (UDID_RE.test(user_id) || BASIC_VERSION_UDID.test(user_id)){
         return user_id.rot13();
-    } else if (SIGNATURE_RE.test(user_id)){
+    } else if (SIGNATURE_RE.test(user_id) || BASIC_VERSION_SIGNATURE.test(user_id)){
         return user_id;
     } else {
         return null;
